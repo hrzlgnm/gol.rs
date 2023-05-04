@@ -4,15 +4,15 @@ use std::time::Duration;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum Cell {
-    DEAD,
-    ALIVE,
+    Dead,
+    Alive,
 }
 
 impl Display for Cell {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Cell::DEAD => write!(f, "{}", ' '),
-            Cell::ALIVE => write!(f, "{}", '#'),
+            Cell::Dead => write!(f, " "),
+            Cell::Alive => write!(f, "#"),
         }
     }
 }
@@ -30,7 +30,7 @@ impl Display for Board {
             for col in 0..self.width {
                 write!(f, "{}", self.cell_at(col, row))?;
             }
-            write!(f, "\n")?;
+            writeln!(f)?;
         }
         Ok(())
     }
@@ -41,16 +41,16 @@ impl Board {
         Self {
             width,
             height,
-            board: vec![Cell::DEAD; (width * height) as usize],
+            board: vec![Cell::Dead; (width * height) as usize],
         }
     }
 
     pub fn cell_alive_at(&self, col: i32, row: i32) -> bool {
-        return self.board[(row * self.width + col) as usize] == Cell::ALIVE;
+        self.board[(row * self.width + col) as usize] == Cell::Alive
     }
 
     pub fn cell_at(&self, col: i32, row: i32) -> Cell {
-        self.board[(row * self.width + col) as usize].clone()
+        self.board[(row * self.width + col) as usize]
     }
 
     pub fn set_at(&mut self, col: i32, row: i32, cell: Cell) {
@@ -92,9 +92,9 @@ fn next_board(board: Board) -> Board {
         for col in 0..board.width {
             let nbors = board.alive_neighbours(col, row);
             match (board.cell_alive_at(col, row), nbors) {
-                (true, 2) => n.set_at(col, row, Cell::ALIVE),
-                (true, 3) => n.set_at(col, row, Cell::ALIVE),
-                (false, 3) => n.set_at(col, row, Cell::ALIVE),
+                (true, 2) => n.set_at(col, row, Cell::Alive),
+                (true, 3) => n.set_at(col, row, Cell::Alive),
+                (false, 3) => n.set_at(col, row, Cell::Alive),
                 _ => {}
             }
         }
@@ -106,15 +106,15 @@ fn main() {
     let height: i32 = 60;
     let width: i32 = 60;
     let mut board = Board::new(width, height);
-    board.set_at(width / 2 - 1, height / 2 - 1, Cell::DEAD);
-    board.set_at(width / 2 - 1, height / 2,  Cell::ALIVE);
-    board.set_at(width / 2 - 1, height / 2 + 1, Cell::ALIVE);
-    board.set_at(width / 2, height / 2 - 1, Cell::ALIVE);
-    board.set_at(width / 2, height / 2, Cell::ALIVE);
-    board.set_at(width / 2, height / 2 + 1, Cell::DEAD);
-    board.set_at(width / 2 + 1, height / 2 - 1, Cell::DEAD);
-    board.set_at(width / 2 + 1, height / 2, Cell::ALIVE);
-    board.set_at(width / 2 + 1, height / 2 + 1, Cell::DEAD);
+    board.set_at(width / 2 - 1, height / 2 - 1, Cell::Dead);
+    board.set_at(width / 2 - 1, height / 2,  Cell::Alive);
+    board.set_at(width / 2 - 1, height / 2 + 1, Cell::Alive);
+    board.set_at(width / 2, height / 2 - 1, Cell::Alive);
+    board.set_at(width / 2, height / 2, Cell::Alive);
+    board.set_at(width / 2, height / 2 + 1, Cell::Dead);
+    board.set_at(width / 2 + 1, height / 2 - 1, Cell::Dead);
+    board.set_at(width / 2 + 1, height / 2, Cell::Alive);
+    board.set_at(width / 2 + 1, height / 2 + 1, Cell::Dead);
 
     for i in 1..10000 {
         print!("{esc}[1;1H{esc}[2J", esc = 27 as char);
