@@ -2,99 +2,84 @@ use std::fmt::Display;
 use std::thread::sleep;
 use std::time::Duration;
 
-#[derive(Debug, Clone, Copy, PartialEq)]
-enum Cell {
-    Dead,
-    Alive,
-}
-
-impl Display for Cell {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Cell::Dead => write!(f, " "),
-            Cell::Alive => write!(f, "#"),
-        }
-    }
-}
-
 #[derive(Debug)]
-struct Board {
-    width: i32,
-    height: i32,
-    board: Vec<Cell>,
+struct Gol {
+    grid: Vec<Vec<i8>>,
 }
 
-impl Display for Board {
+impl Display for Gol {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for row in 0..self.height {
-            for col in 0..self.width {
-                write!(f, "{}", self.cell_at(col, row))?;
-            }
-            writeln!(f)?;
-        }
+        self.grid.iter().for_each(|r| {
+            r.iter().for_each(|c| {
+                match c {
+                    1 => write!(f, "#").unwrap(),
+                    _ => write!(f, " ").unwrap(),
+                };
+            });
+            writeln!(f).unwrap();
+        });
         Ok(())
     }
 }
 
-impl Board {
-    pub fn new(width: i32, height: i32) -> Self {
+impl Gol {
+    pub fn new(width: usize, height: usize) -> Self {
         Self {
-            width,
-            height,
-            board: vec![Cell::Dead; (width * height) as usize],
+            grid: vec![vec![0; width]; height],
         }
     }
 
-    pub fn cell_alive_at(&self, col: i32, row: i32) -> bool {
-        self.board[(row * self.width + col) as usize] == Cell::Alive
+    pub fn cell_alive_at(&self, col: usize, row: usize) -> bool {
+        self.grid[col as usize][row as usize] == 1
     }
 
-    pub fn cell_at(&self, col: i32, row: i32) -> Cell {
-        self.board[(row * self.width + col) as usize]
+    pub fn cell_at(&self, col: usize, row: usize) -> i8 {
+        self.grid[col as usize][row as usize]
     }
 
-    pub fn set_at(&mut self, col: i32, row: i32, cell: Cell) {
-        self.board[(row * self.width + col) as usize] = cell;
+    pub fn set_at(&mut self, col: usize, row: usize, cell: i8) {
+        self.grid[col as usize][row as usize] = cell
     }
 
-    pub fn alive_neighbours(&self, col: i32, row: i32) -> usize {
+    pub fn alive_neighbours(&self, col: usize, row: usize) -> usize {
+        let width = self.grid.len() as i32;
+        let height = self.grid[0].len() as i32;
         let mut alive: usize = 0;
         for delta_row in 0..3 {
             for delta_col in 0..3 {
-                if delta_row != 1 || delta_col != 1 {
-                    let mut c = col + delta_col - 1;
-                    let mut r = row + delta_row - 1;
-                    if c >= self.width {
-                        c %= self.width;
-                    }
-                    if r >= self.height {
-                       r %= self.height;
-                    }
-                    if c < 0 {
-                        c += self.width;
-                    }
-                    if r < 0 {
-                        r += self.height;
-                    }
-                    if self.cell_alive_at(c, r) {
-                        alive += 1;
-                    }
+                let mut c = col as i32 + delta_col - 1;
+                let mut r = row as i32 + delta_row - 1;
+                if c >= width {
+                    c %= width;
                 }
+                if r >= height {
+                    r %= height;
+                }
+                if c < 0 {
+                    c += width;
+                }
+                if r < 0 {
+                    r += height;
+                }
+                alive += self.cell_alive_at(c as usize, r as usize) as usize;
             }
         }
-        alive
+        alive - self.cell_at(col, row) as usize
     }
 }
 
-fn next_board(board: Board) -> Board {
-    let mut n = Board::new(board.width, board.height);
-    for row in 0..board.height {
-        for col in 0..board.width {
+fn next_board(board: Gol) -> Gol {
+    let width = board.grid.len();
+    let height = board.grid[0].len();
+
+    let mut n = Gol::new(width, height);
+    for row in 0..height {
+        for col in 0..width {
             let nbors = board.alive_neighbours(col, row);
             match (board.cell_alive_at(col, row), nbors) {
-                (true, 2) => n.set_at(col, row, Cell::Alive),
-                (true, 3) => n.set_at(col, row, Cell::Alive),
-                (false, 3) => n.set_at(col, row, Cell::Alive),
+                (true, 2) => n.set_at(col, row, 1),
+                (true, 3) => n.set_at(col, row, 1),
+                (false, 3) => n.set_at(col, row, 1),
                 _ => {}
             }
         }
@@ -103,18 +88,18 @@ fn next_board(board: Board) -> Board {
 }
 
 fn main() {
-    let height: i32 = 60;
-    let width: i32 = 60;
-    let mut board = Board::new(width, height);
-    board.set_at(width / 2 - 1, height / 2 - 1, Cell::Dead);
-    board.set_at(width / 2 - 1, height / 2,  Cell::Alive);
-    board.set_at(width / 2 - 1, height / 2 + 1, Cell::Alive);
-    board.set_at(width / 2, height / 2 - 1, Cell::Alive);
-    board.set_at(width / 2, height / 2, Cell::Alive);
-    board.set_at(width / 2, height / 2 + 1, Cell::Dead);
-    board.set_at(width / 2 + 1, height / 2 - 1, Cell::Dead);
-    board.set_at(width / 2 + 1, height / 2, Cell::Alive);
-    board.set_at(width / 2 + 1, height / 2 + 1, Cell::Dead);
+    let height: usize = 60;
+    let width: usize = 60;
+    let mut board = Gol::new(width, height);
+    board.set_at(width / 2 - 1, height / 2 - 1, 0);
+    board.set_at(width / 2 - 1, height / 2, 1);
+    board.set_at(width / 2 - 1, height / 2 + 1, 1);
+    board.set_at(width / 2, height / 2 - 1, 1);
+    board.set_at(width / 2, height / 2, 1);
+    board.set_at(width / 2, height / 2 + 1, 0);
+    board.set_at(width / 2 + 1, height / 2 - 1, 0);
+    board.set_at(width / 2 + 1, height / 2, 1);
+    board.set_at(width / 2 + 1, height / 2 + 1, 0);
 
     for i in 1..10000 {
         print!("{esc}[1;1H{esc}[2J", esc = 27 as char);
