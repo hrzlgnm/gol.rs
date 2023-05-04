@@ -1,46 +1,86 @@
-#[derive(Debug,Clone,Copy,PartialEq)]
+use std::fmt::Display;
+use std::thread::sleep;
+use std::time::Duration;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 enum Cell {
     DEAD,
     ALIVE,
 }
 
+impl Display for Cell {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Cell::DEAD => write!(f, "{}", ' '),
+            Cell::ALIVE => write!(f, "{}", '#'),
+        }
+    }
+}
+
 #[derive(Debug)]
 struct Board {
-    width: usize,
-    height: usize,
+    width: i32,
+    height: i32,
     board: Vec<Cell>,
 }
 
+impl Display for Board {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for row in 0..self.height {
+            for col in 0..self.width {
+                write!(f, "{}", *self.cell_at(col, row))?;
+            }
+            write!(f, "\n")?;
+        }
+        Ok(())
+    }
+}
+
 impl Board {
-    pub fn new(width: usize, height: usize) -> Self {
+    pub fn new(width: i32, height: i32) -> Self {
         Self {
             width,
             height,
-            board: vec![Cell::DEAD; width*height],
+            board: vec![Cell::DEAD; (width * height) as usize],
         }
     }
 
-    pub fn cell_at(&self, col: usize, row: usize) -> Box<Cell> {
-        return Box::new(self.board[row * self.width + col]);
+    pub fn cell_alive_at(&self, col: i32, row: i32) -> bool {
+        return self.board[(row * self.width + col) as usize] == Cell::ALIVE;
     }
 
-    pub fn set_at(&mut self, col: usize, row: usize, cell: Cell) {
-        self.board[row * self.width + col] = cell;
+    pub fn cell_at(&self, col: i32, row: i32) -> Box<Cell> {
+        return Box::new(self.board[(row * self.width + col) as usize]);
     }
 
-    pub fn alive_neighbours(&self, col: usize, row: usize) -> usize {
+    pub fn set_at(&mut self, col: i32, row: i32, cell: Cell) {
+        self.board[(row * self.width + col) as usize] = cell;
+    }
+
+    pub fn alive_neighbours(&self, col: i32, row: i32) -> usize {
         let mut alive: usize = 0;
-        for delta_col in 0..2  {
-            for delta_row in 0..2 {
+        for delta_row in 0..3 {
+            for delta_col in 0..3 {
                 if delta_row != 1 || delta_col != 1 {
-                    let c = col.wrapping_add(delta_col).wrapping_sub(1) % self.width;
-                    let r = row.wrapping_add(delta_row).wrapping_sub(1) % self.height;
-                    let cel = self.cell_at(r, c);
-                    if *cel == Cell::ALIVE {
-                        alive+=1;
+                    let mut c = col + delta_col - 1;
+                    let mut r = row + delta_row - 1;
+                    if c >= self.width {
+                        c %= self.width;
+                    }
+                    if r >= self.height {
+                       r %= self.height;
+                    }
+                    if c < 0 {
+                        c += self.width;
+                    }
+                    if r < 0 {
+                        r += self.height;
+                    }
+                    if self.cell_alive_at(c, r) {
+                        alive += 1;
                     }
                 }
-            }                    
+            }
         }
         alive
     }
@@ -48,19 +88,14 @@ impl Board {
 
 fn next_board(board: Board) -> Board {
     let mut n = Board::new(board.width, board.height);
-    for col in 0..board.width {
-        for row in 0..board.height {
+    for row in 0..board.height {
+        for col in 0..board.width {
             let nbors = board.alive_neighbours(col, row);
-            match Some(*board.cell_at(col, row)) {
-                Some(Cell::ALIVE) if nbors == 2 || nbors == 3 => {
-                    n.set_at(col, row, Cell::ALIVE)
-                },
-                Some(Cell::DEAD) if nbors == 3 => {
-                    n.set_at(col, row, Cell::DEAD)
-                }
-                _ => {
-
-                }
+            match (board.cell_alive_at(col, row), nbors) {
+                (true, 2) => n.set_at(col, row, Cell::ALIVE),
+                (true, 3) => n.set_at(col, row, Cell::ALIVE),
+                (false, 3) => n.set_at(col, row, Cell::ALIVE),
+                _ => {}
             }
         }
     }
@@ -68,9 +103,25 @@ fn next_board(board: Board) -> Board {
 }
 
 fn main() {
-   let mut board = Board::new(10, 10);
-   board.set_at(0, 0, Cell::ALIVE);
-   let b = next_board(board);
-   println!("{:?}", b);
-}
+    let height: i32 = 60;
+    let width: i32 = 60;
 
+    let mut board = Board::new(width, height);
+
+    board.set_at(width / 2 - 1, height / 2 - 1, Cell::DEAD);
+    board.set_at(width / 2 - 1, height / 2,  Cell::ALIVE);
+    board.set_at(width / 2 - 1, height / 2 + 1, Cell::ALIVE);
+    board.set_at(width / 2, height / 2 - 1, Cell::ALIVE);
+    board.set_at(width / 2, height / 2, Cell::ALIVE);
+    board.set_at(width / 2, height / 2 + 1, Cell::DEAD);
+    board.set_at(width / 2 + 1, height / 2 - 1, Cell::DEAD);
+    board.set_at(width / 2 + 1, height / 2, Cell::ALIVE);
+    board.set_at(width / 2 + 1, height / 2 + 1, Cell::DEAD);
+
+    for i in 1..10000 {
+        print!("{esc}[1;1H{esc}[2J", esc = 27 as char);
+        println!("G:{i}\n{board}");
+        board = next_board(board);
+        sleep(Duration::from_micros(1000 * 1000 / 30))
+    }
+}
