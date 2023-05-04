@@ -28,7 +28,7 @@ impl Display for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for row in 0..self.height {
             for col in 0..self.width {
-                write!(f, "{}", *self.cell_at(col, row))?;
+                write!(f, "{}", self.cell_at(col, row))?;
             }
             write!(f, "\n")?;
         }
@@ -49,8 +49,8 @@ impl Board {
         return self.board[(row * self.width + col) as usize] == Cell::ALIVE;
     }
 
-    pub fn cell_at(&self, col: i32, row: i32) -> Box<Cell> {
-        return Box::new(self.board[(row * self.width + col) as usize]);
+    pub fn cell_at(&self, col: i32, row: i32) -> Cell {
+        self.board[(row * self.width + col) as usize].clone()
     }
 
     pub fn set_at(&mut self, col: i32, row: i32, cell: Cell) {
@@ -105,9 +105,7 @@ fn next_board(board: Board) -> Board {
 fn main() {
     let height: i32 = 60;
     let width: i32 = 60;
-
     let mut board = Board::new(width, height);
-
     board.set_at(width / 2 - 1, height / 2 - 1, Cell::DEAD);
     board.set_at(width / 2 - 1, height / 2,  Cell::ALIVE);
     board.set_at(width / 2 - 1, height / 2 + 1, Cell::ALIVE);
